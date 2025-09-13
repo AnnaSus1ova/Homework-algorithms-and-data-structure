@@ -64,11 +64,9 @@ public:
         }
         
         while (minHeap.size() > 1) {
-            // ЖАДНЫЙ ВЫБОР: берем два узла с наименьшими частотами
             Node* left = minHeap.top(); minHeap.pop();
             Node* right = minHeap.top(); minHeap.pop();
             
-            // Создаем новый узел с суммой частот
             int sumFreq = left->freq + right->freq;
             Node* newNode = new Node(sumFreq, left, right);
             
