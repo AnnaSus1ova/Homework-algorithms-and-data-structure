@@ -1,1 +1,161 @@
+#include <iostream>
+#include <queue>
+#include <unordered_map>
+#include <vector>
+#include <string>
 
+using namespace std;
+
+// Узел дерева Хаффмана
+struct Node {
+    char ch;
+    int freq;
+    Node *left, *right;
+    
+    Node(char c, int f) : ch(c), freq(f), left(nullptr), right(nullptr) {}
+    Node(int f, Node* l, Node* r) : ch('\0'), freq(f), left(l), right(r) {}
+};
+
+// Компаратор для min-heap
+struct Compare {
+    bool operator()(Node* a, Node* b) {
+        return a->freq > b->freq;
+    }
+};
+
+class HuffmanCoding {
+private:
+    Node* root;
+    
+    // Рекурсивная генерация кодов
+    void generateCodes(Node* node, string code, unordered_map<char, string>& codes) {
+        if (!node) return;
+        
+        if (!node->left && !node->right) {
+            codes[node->ch] = code;
+            return;
+        }
+        
+        generateCodes(node->left, code + "0", codes);
+        generateCodes(node->right, code + "1", codes);
+    }
+    
+    // Очистка дерева
+    void clearTree(Node* node) {
+        if (!node) return;
+        clearTree(node->left);
+        clearTree(node->right);
+        delete node;
+    }
+
+public:
+    HuffmanCoding() : root(nullptr) {}
+    
+    ~HuffmanCoding() {
+        clearTree(root);
+    }
+    
+    // Жадный алгоритм построения дерева Хаффмана
+    void buildTree(const unordered_map<char, int>& frequencies) {
+        priority_queue<Node*, vector<Node*>, Compare> minHeap;
+        
+        for (const auto& pair : frequencies) {
+            minHeap.push(new Node(pair.first, pair.second));
+        }
+        
+        while (minHeap.size() > 1) {
+            // ЖАДНЫЙ ВЫБОР: берем два узла с наименьшими частотами
+            Node* left = minHeap.top(); minHeap.pop();
+            Node* right = minHeap.top(); minHeap.pop();
+            
+            // Создаем новый узел с суммой частот
+            int sumFreq = left->freq + right->freq;
+            Node* newNode = new Node(sumFreq, left, right);
+            
+            minHeap.push(newNode);
+        }
+        
+        root = minHeap.top();
+    }
+    
+    // Генерация кодов Хаффмана
+    unordered_map<char, string> getCodes() {
+        unordered_map<char, string> codes;
+        if (root) {
+            generateCodes(root, "", codes);
+        }
+        return codes;
+    }
+    
+    // Кодирование текста
+    string encode(const string& text, const unordered_map<char, string>& codes) {
+        string result;
+        for (char ch : text) {
+            result += codes.at(ch);
+        }
+        return result;
+    }
+    
+    // Декодирование текста
+    string decode(const string& encoded) {
+        string result;
+        Node* current = root;
+        
+        for (char bit : encoded) {
+            if (bit == '0') {
+                current = current->left;
+            } else {
+                current = current->right;
+            }
+            
+            if (!current->left && !current->right) {
+                result += current->ch;
+                current = root;
+            }
+        }
+        
+        return result;
+    }
+};
+
+// Подсчет частот символов
+unordered_map<char, int> countFrequencies(const string& text) {
+    unordered_map<char, int> freq;
+    for (char ch : text) {
+        freq[ch]++;
+    }
+    return freq;
+}
+
+int main() {
+    string text = "abracadabra";
+    cout << "Исходный текст: " << text << endl;
+    
+    // Подсчет частот
+    auto frequencies = countFrequencies(text);
+    cout << "\nЧастоты символов:\n";
+    for (const auto& pair : frequencies) {
+        cout << "'" << pair.first << "': " << pair.second << endl;
+    }
+    
+    // Жадный алгоритм Хаффмана
+    HuffmanCoding huffman;
+    huffman.buildTree(frequencies);
+    
+    // Получение кодов
+    auto codes = huffman.getCodes();
+    cout << "\nКоды Хаффмана:\n";
+    for (const auto& pair : codes) {
+        cout << "'" << pair.first << "': " << pair.second << endl;
+    }
+    
+    // Кодирование
+    string encoded = huffman.encode(text, codes);
+    cout << "\nЗакодированная строка: " << encoded << endl;
+    
+    // Декодирование
+    string decoded = huffman.decode(encoded);
+    cout << "Декодированная строка: " << decoded << endl;
+    
+    return 0;
+}
